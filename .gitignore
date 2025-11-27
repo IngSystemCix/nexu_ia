@@ -1,0 +1,51 @@
+# Node
+node_modules/
+npm-debug.log*
+pnpm-debug.log*
+.pnpm-store/
+
+# Next.js
+.next/
+out/
+build/
+dist/
+
+# Production
+/.vercel/
+
+# Environment
+.env
+.env.*.local
+.env.local
+
+# Logs
+logs/
+*.log
+
+# Editor/IDE
+.vscode/
+.idea/
+*.sublime-workspace
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Lock files
+package-lock.json
+yarn.lock
+
+# Coverage
+coverage/
+*.lcov
+
+# TypeScript
+*.tsbuildinfo
+
+# Misc
+*.tgz
+*.bak
+
+# PM2
+pm2.pid
+pm2.log

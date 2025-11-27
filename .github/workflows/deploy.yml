@@ -1,0 +1,69 @@
+name: Deploy to SSH server
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Build and Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+          cache-dependency-path: "pnpm-lock.yaml"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: "latest"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Prepare deploy bundle
+        run: |
+          mkdir -p deploy
+          rsync -av --exclude='.git' --exclude='node_modules' --exclude='.github' --exclude='pnpm-store' --exclude='*.log' ./ deploy/
+
+      - name: Copy files to server (SCP)
+        uses: appleboy/scp-action@v0.1.2
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          source: "deploy/*"
+          target: ${{ secrets.REMOTE_DIR }}
+
+      - name: Run remote install and restart (SSH)
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            set -e
+            cd ${{ secrets.REMOTE_DIR }}
+            if ! command -v pnpm > /dev/null; then
+              corepack enable
+              corepack prepare pnpm@latest --activate
+            fi
+            pnpm install --prod --frozen-lockfile
+            pnpm build
+            if ! command -v pm2 > /dev/null; then
+              npm i -g pm2
+            fi
+            pm2 restart my-app || pm2 start npm --name my-app -- start
