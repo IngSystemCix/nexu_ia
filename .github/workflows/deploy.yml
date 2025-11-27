@@ -38,13 +38,9 @@ jobs:
           pnpm exec next build
           pnpm exec next export
 
-      - name: Configure Pages
-        uses: actions/configure-pages@v3
-
-      - name: Upload artifact for GitHub Pages
-        uses: actions/upload-pages-artifact@v1
+      - name: Deploy to GitHub Pages (gh-pages branch)
+        uses: peaceiris/actions-gh-pages@v3
         with:
-          path: ./out
-
-      - name: Deploy to GitHub Pages
-        uses: actions/deploy-pages@v1
+          publish_dir: ./out
+          publish_branch: gh-pages
+          github_token: ${{ secrets.GITHUB_TOKEN }}

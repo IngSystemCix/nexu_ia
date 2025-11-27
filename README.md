@@ -1,47 +1,34 @@
 # nexu_ia
 
-## Despliegue con GitHub Actions (SSH + PM2)
+## Despliegue con GitHub Actions (GitHub Pages)
 
-Este repositorio incluye un workflow de GitHub Actions en `/.github/workflows/deploy.yml` que construye la aplicación con `pnpm` y la despliega a un servidor remoto vía SCP + SSH, reiniciando la app con `pm2`.
+Este repositorio ahora despliega la salida estática generada por Next.js a GitHub Pages usando la rama `gh-pages`.
 
-Pasos rápidos para usarlo:
+Resumen del workflow (`.github/workflows/deploy.yml`):
 
-- Añade los siguientes _secrets_ en Settings → Secrets → Actions del repositorio:
+- Ejecuta `pnpm build` y `pnpm exec next export` para generar la salida estática en `./out`.
+- Publica `./out` en la rama `gh-pages` usando `peaceiris/actions-gh-pages@v3`.
 
-  - `SSH_HOST`: IP o dominio del servidor remoto.
-  - `SSH_USER`: usuario SSH que realizará el despliegue.
-  - `SSH_PRIVATE_KEY`: clave privada (PEM) del usuario SSH. No pongas passphrase o usa `ssh-agent` si necesitas passphrase.
-  - `SSH_PORT`: puerto SSH (opcional, por defecto `22`).
-  - `REMOTE_DIR`: directorio destino en el servidor (por ejemplo `/var/www/my-app`).
+Requisitos y notas importantes:
 
-- El workflow se dispara automáticamente al hacer `push` a la rama `main` y también puede ejecutarse manualmente desde la pestaña Actions → Deploy to SSH server → Run workflow.
+- La publicación **usa** `gh-pages` (ramo `gh-pages`). GitHub Pages debe estar configurado para servir desde esa rama (Settings → Pages → Branch: `gh-pages`).
+- Next.js debe ser compatible con `next export` (sitio estático). Si tu app usa Server Side Rendering, API Routes o rutas dinámicas que no pueden exportarse estáticamente, este flujo no funcionará y necesitaremos usar Vercel, Netlify o un servidor Node.
+- Para repositorios públicos, el `GITHUB_TOKEN` proporcionado automáticamente por Actions suele ser suficiente. Si tu repo es privado y necesitas más permisos, crea un Personal Access Token (PAT) con `repo` y configúralo como secret `ACTIONS_DEPLOY_TOKEN` y actualiza el workflow.
 
-Requisitos en el servidor remoto:
-
-- Tener acceso SSH con el usuario configurado en `SSH_USER` y suficiente permiso sobre `REMOTE_DIR`.
-- Tener Node.js disponible (el workflow puede activar `corepack` y preparar `pnpm` si no está presente).
-- Si el servidor no tiene `pm2`, el workflow intentará instalarlo globalmente (`npm i -g pm2`). Si no quieres instalaciones globales, reemplaza la gestión de procesos por `systemd` o `docker`.
-
-Notas y buenas prácticas:
-
-- Asegúrate de que la rama principal de despliegue se llame `main` (el trigger está configurado para `main`). Cambia el workflow si usas `master` u otra rama.
-- El action copia la carpeta `deploy/` construida por `rsync` (excluye `node_modules`, `.git`, etc.). El servidor ejecuta `pnpm install --prod` y vuelve a construir con `pnpm build` por seguridad.
-- Si tu app es completamente estática y quieres usar GitHub Pages o Netlify, dime y genero un workflow alternativo.
-
-Comandos útiles locales:
+Cómo probar localmente la exportación estática:
 
 ```pwsh
 # instalar dependencias
 pnpm install
 
-# ejecutar en desarrollo
-pnpm dev
+# construir + exportar estático
+pnpm exec next build
+pnpm exec next export
 
-# construir
-pnpm build
-
-# probar la versión de producción localmente
-pnpm start
+# el resultado queda en ./out
+ls -la out
 ```
 
-Si quieres que adapte el workflow para `docker build` -> `push` a un registry, o para desplegar directamente a Vercel, indícalo y lo preparo.
+Si tu proyecto no es Next.js (por ejemplo, es una SPA creada con CRA), puedo actualizar el workflow para usar `pnpm run build` y publicar la carpeta `build/` en lugar de `out/`.
+
+Si prefieres volver al despliegue por SSH/PM2, Docker o a Vercel, dime y preparo el workflow alternativo.
