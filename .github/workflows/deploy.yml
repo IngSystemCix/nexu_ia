@@ -32,38 +32,19 @@ jobs:
       - name: Build
         run: pnpm build
 
-      - name: Prepare deploy bundle
+      - name: Export static site
         run: |
-          mkdir -p deploy
-          rsync -av --exclude='.git' --exclude='node_modules' --exclude='.github' --exclude='pnpm-store' --exclude='*.log' ./ deploy/
+          # Next.js static export (creates ./out)
+          pnpm exec next build
+          pnpm exec next export
 
-      - name: Copy files to server (SCP)
-        uses: appleboy/scp-action@v0.1.2
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: ${{ secrets.SSH_PORT }}
-          source: "deploy/*"
-          target: ${{ secrets.REMOTE_DIR }}
+      - name: Configure Pages
+        uses: actions/configure-pages@v3
 
-      - name: Run remote install and restart (SSH)
-        uses: appleboy/ssh-action@v0.1.7
+      - name: Upload artifact for GitHub Pages
+        uses: actions/upload-pages-artifact@v1
         with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: ${{ secrets.SSH_PORT }}
-          script: |
-            set -e
-            cd ${{ secrets.REMOTE_DIR }}
-            if ! command -v pnpm > /dev/null; then
-              corepack enable
-              corepack prepare pnpm@latest --activate
-            fi
-            pnpm install --prod --frozen-lockfile
-            pnpm build
-            if ! command -v pm2 > /dev/null; then
-              npm i -g pm2
-            fi
-            pm2 restart my-app || pm2 start npm --name my-app -- start
+          path: ./out
+
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v1
