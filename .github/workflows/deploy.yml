@@ -39,14 +39,10 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
-      - name: Build
-        run: pnpm build
-
-      - name: Export static site
+      - name: Build (static export)
         run: |
-          # Next.js static export (creates ./out)
+          # Next.js >=16: `output: 'export'` in next.config.mjs produces static files during build
           pnpm exec next build
-          pnpm exec next export
 
       - name: Deploy to GitHub Pages (gh-pages branch)
         uses: peaceiris/actions-gh-pages@v3
