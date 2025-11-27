@@ -21,7 +21,12 @@ jobs:
           cache: "pnpm"
           cache-dependency-path: "pnpm-lock.yaml"
 
-      - name: Setup pnpm
+      - name: Enable Corepack and pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@latest --activate
+
+      - name: Setup pnpm (cache)
         uses: pnpm/action-setup@v2
         with:
           version: "latest"
